@@ -36,4 +36,8 @@ class CustomLR1110 : public LR1110 {
       bool detected = ((irq & RADIOLIB_LR11X0_IRQ_SYNC_WORD_HEADER_VALID) || (irq & RADIOLIB_LR11X0_IRQ_PREAMBLE_DETECTED));
       return detected;
     }
+
+    uint8_t getCodingRate() const {
+      return this->codingRate + 4;  // RadioLib stores 1-4, return 5-8
+    }
 };
