@@ -23,4 +23,11 @@ public:
   }
 
   void doResetAGC() override { sx126xResetAGC((SX126x *)_radio); }
+
+  uint8_t getCodingRate() const override {
+    return ((CustomSTM32WLx *)_radio)->codingRate + 4;
+  }
+  float getFreqMHz() const override {
+    return ((CustomSTM32WLx *)_radio)->freqMHz;
+  }
 };
