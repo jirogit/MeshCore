@@ -39,9 +39,9 @@ public:
   }
 
   virtual float getCurrentRSSI() =0;
-  virtual uint8_t getCodingRate() const = 0;
-  virtual float getFreqMHz() const = 0;
-
+  virtual uint8_t getCodingRate() const { return 8; }   // default CR4/8, override in subclass
+  virtual float getFreqMHz() const { return 0.0f; }     // default unknown, override in subclass
+						      //
   bool isJapanMode() const {
     float freq = getFreqMHz();
     return (fabsf(freq - 920.800f) < 0.05f ||
