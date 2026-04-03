@@ -68,56 +68,81 @@ static File openWrite(FILESYSTEM* _fs, const char* filename) {
   #endif
 }
 
+// Load from /regions3 format (64-byte per-record padding).
+// Falls back to legacy /regions2 format (128-byte padding) for migration.
 bool RegionMap::load(FILESYSTEM* _fs, const char* path) {
-  if (_fs->exists(path ? path : "/regions2")) {
+  // /regions3: current format, 64-byte per-record padding (written by this save()).
+  // /regions2: legacy format, 128-byte per-record padding (read-only, for migration).
+  const char* path_v3 = path ? path : "/regions3";
+  const char* path_v2 = path ? path : "/regions2";
+
+  bool use_legacy = false;
+  if (!_fs->exists(path_v3)) {
+    if (!_fs->exists(path_v2)) return false;  // neither file exists
+    use_legacy = true;  // migrate from /regions2 on next save()
+  }
+
+  const char* chosen = use_legacy ? path_v2 : path_v3;
+
   #if defined(RP2040_PLATFORM)
-    File file = _fs->open(path ? path : "/regions2", "r");
+    File file = _fs->open(chosen, "r");
   #else
-    File file = _fs->open(path ? path : "/regions2");
+    File file = _fs->open(chosen);
   #endif
 
-    if (file) {
-      uint8_t pad[128];
+  if (!file) return false;
 
-      num_regions = 0; next_id = 1; home_id = 0;
+  uint8_t hdr[5];
+  num_regions = 0; next_id = 1; home_id = 0;
 
-      bool success = file.read(pad, 5) == 5;  // reserved header
-      success = success && file.read((uint8_t *) &home_id, sizeof(home_id)) == sizeof(home_id);
-      success = success && file.read((uint8_t *) &wildcard.flags, sizeof(wildcard.flags)) == sizeof(wildcard.flags);
-      success = success && file.read((uint8_t *) &next_id, sizeof(next_id)) == sizeof(next_id);
+  bool success = file.read(hdr, 5) == 5;  // reserved header
+  success = success && file.read((uint8_t *) &home_id, sizeof(home_id)) == sizeof(home_id);
+  success = success && file.read((uint8_t *) &wildcard.flags, sizeof(wildcard.flags)) == sizeof(wildcard.flags);
+  success = success && file.read((uint8_t *) &next_id, sizeof(next_id)) == sizeof(next_id);
 
-      if (success) {
-        while (num_regions < MAX_REGION_ENTRIES) {
-          auto r = &regions[num_regions];
+  if (success) {
+    while (num_regions < MAX_REGION_ENTRIES) {
+      auto r = &regions[num_regions];
 
-          success = file.read((uint8_t *) &r->id, sizeof(r->id)) == sizeof(r->id);
-          success = success && file.read((uint8_t *) &r->parent, sizeof(r->parent)) == sizeof(r->parent);
-          success = success && file.read((uint8_t *) r->name, sizeof(r->name)) == sizeof(r->name);
-          success = success && file.read((uint8_t *) &r->flags, sizeof(r->flags)) == sizeof(r->flags);
-          success = success && file.read(pad, sizeof(pad)) == sizeof(pad);
+      success = file.read((uint8_t *) &r->id, sizeof(r->id)) == sizeof(r->id);
+      success = success && file.read((uint8_t *) &r->parent, sizeof(r->parent)) == sizeof(r->parent);
+      success = success && file.read((uint8_t *) r->name, sizeof(r->name)) == sizeof(r->name);
+      success = success && file.read((uint8_t *) &r->flags, sizeof(r->flags)) == sizeof(r->flags);
 
-          if (!success) break; // EOF
-
-          if (r->id >= next_id) {    // make sure next_id is valid
-            next_id = r->id + 1;
-          }
-          num_regions++;
-        }
+      if (use_legacy) {
+        // Legacy /regions2 had 128 bytes of per-record padding; skip it.
+        uint8_t pad[128];
+        success = success && file.read(pad, sizeof(pad)) == sizeof(pad);
+      } else {
+        // /regions3 has 64 bytes of per-record padding for future expansion.
+        uint8_t pad[64];
+        success = success && file.read(pad, sizeof(pad)) == sizeof(pad);
       }
-      file.close();
-      return true;
+
+      if (!success) break; // EOF
+
+      if (r->id >= next_id) {    // make sure next_id is valid
+        next_id = r->id + 1;
+      }
+      num_regions++;
     }
   }
-  return false;  // failed
+  file.close();
+  return num_regions > 0 || success;  // true if header was readable (even empty map)
 }
 
+// Save in /regions3 format: 64-byte per-record padding for future expansion.
+// Each record is 100 bytes (2 id + 2 parent + 31 name + 1 flags + 64 pad),
+// vs. 164 bytes in the legacy /regions2 format.
+// All 32 entries fit within ~3.2 KB (78% of one nRF52 4096B LittleFS block).
 bool RegionMap::save(FILESYSTEM* _fs, const char* path) {
-  File file = openWrite(_fs, path ? path : "/regions2");
+  const char* save_path = path ? path : "/regions3";
+  File file = openWrite(_fs, save_path);
   if (file) {
-    uint8_t pad[128];
-    memset(pad, 0, sizeof(pad));
+    uint8_t hdr[5] = {0};
+    uint8_t pad[64] = {0};
 
-    bool success = file.write(pad, 5) == 5;  // reserved header
+    bool success = file.write(hdr, 5) == 5;  // reserved header
     success = success && file.write((uint8_t *) &home_id, sizeof(home_id)) == sizeof(home_id);
     success = success && file.write((uint8_t *) &wildcard.flags, sizeof(wildcard.flags)) == sizeof(wildcard.flags);
     success = success && file.write((uint8_t *) &next_id, sizeof(next_id)) == sizeof(next_id);
@@ -135,7 +160,11 @@ bool RegionMap::save(FILESYSTEM* _fs, const char* path) {
       }
     }
     file.close();
-    return true;
+    if (success && !path) {
+      // Migration complete: remove legacy /regions2 if it exists.
+      if (_fs->exists("/regions2")) _fs->remove("/regions2");
+    }
+    return success;
   }
   return false;  // failed
 }

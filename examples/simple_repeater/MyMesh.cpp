@@ -1180,8 +1180,50 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
 
     const char* parts[4];
     int n = mesh::Utils::parseTextParts(command, parts, 4, ' ');
-    if (n == 1) {
-      region_map.exportTo(reply, 160);
+    if (n == 1 || (n >= 2 && parts[1][0] >= '0' && parts[1][0] <= '9')) {
+      // Paged region listing. Argument is the start index into the named-region
+      // array (0-based). 'region' or 'region 0' starts from the beginning.
+      // The first page always prepends the wildcard (*).
+      // The reply footer shows the next start index, e.g. ">5" meaning
+      // run 'region 5' to continue. No footer = last page.
+      int start = (n >= 2) ? atoi(parts[1]) : 0;
+      if (start < 0) start = 0;
+
+      int total = region_map.getCount();   // named regions only (excludes *)
+
+      char *dp = reply;
+      char *limit = reply + 148;  // leave 12 bytes for ">NN\0" footer + safety
+
+      if (start == 0) {
+        // always show wildcard on first page
+        const RegionEntry& wc = region_map.getWildcard();
+        int wlen = snprintf(dp, (size_t)(limit - dp), "*%s\n",
+                            (wc.flags & REGION_DENY_FLOOD) ? "" : " F");
+        if (wlen > 0 && dp + wlen < limit) dp += wlen;
+      }
+
+      int i = start;
+      for (; i < total; i++) {
+        const RegionEntry* r = region_map.getByIdx(i);
+        const char* name = r->name[0] == '#' ? r->name + 1 : r->name;
+        int rlen = snprintf(dp, (size_t)(limit - dp), "%s%s\n",
+                            name,
+                            (r->flags & REGION_DENY_FLOOD) ? "" : " F");
+        if (rlen > 0 && dp + rlen < limit) {
+          dp += rlen;
+        } else {
+          break;  // no more space; i is the next start index
+        }
+      }
+
+      if (i < total) {
+        // more entries remain: show next start index as footer
+        snprintf(dp, (size_t)(reply + 160 - dp), ">%d", i);
+      } else if (dp > reply) {
+        *(dp - 1) = 0;  // trim trailing newline on last page
+      }
+
+      if (reply[0] == 0) strcpy(reply, "-none-");
     } else if (n >= 2 && strcmp(parts[1], "load") == 0) {
       temp_map.resetFrom(region_map);   // rebuild regions in a temp instance
       memset(load_stack, 0, sizeof(load_stack));
