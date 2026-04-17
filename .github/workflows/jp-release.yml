@@ -21,7 +21,7 @@ jobs:
 
       - name: Build JP Firmwares
         env:
-          FIRMWARE_VERSION: ${{ env.GIT_TAG_VERSION }}
+          FIRMWARE_VERSION: ${{ env.GIT_TAG_VERSION || 'dev' }}
         run: |
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
