@@ -25,8 +25,18 @@ jobs:
         run: |
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
 
-      - name: Debug - list out dir
-        run: ls -la out/ || echo "out/ does not exist or is empty"
+      - name: Copy artifacts to out/
+        run: |
+          mkdir -p out
+          for env in RAK_WisMesh_Tag_companion_radio_ble; do
+            ver="${{ env.GIT_TAG_VERSION }}"
+            ver="${ver:-dev}"
+            hash=$(git rev-parse --short HEAD)
+            name="${env}-${ver}-${hash}"
+            cp .pio/build/${env}/firmware.uf2 out/${name}.uf2 2>/dev/null || true
+            cp .pio/build/${env}/firmware.zip out/${name}_dfu.zip 2>/dev/null || true
+          done
+          ls -la out/
 
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v4
