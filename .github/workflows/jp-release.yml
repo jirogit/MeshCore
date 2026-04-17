@@ -24,15 +24,23 @@ jobs:
           FIRMWARE_VERSION: ${{ env.GIT_TAG_VERSION || 'dev' }}
         run: |
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
+          bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
+          bash build.sh build-firmware t1000e_companion_radio_ble
+          bash build.sh build-firmware t1000e_companion_radio_usb
+          bash build.sh build-firmware LilyGo_T-Echo-Lite_companion_radio_ble
+          bash build.sh build-firmware Xiao_nrf52_companion_radio_ble
+          bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
 
       - name: Copy artifacts to out/
         run: |
           mkdir -p out
           HASH=$(git rev-parse --short HEAD)
           TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
-          NAME="RAK_WisMesh_Tag_companion_radio_ble-${TAG}-${HASH}"
-          cp .pio/build/RAK_WisMesh_Tag_companion_radio_ble/firmware.uf2 "out/${NAME}.uf2"
-          cp .pio/build/RAK_WisMesh_Tag_companion_radio_ble/firmware.zip "out/${NAME}_dfu.zip"
+          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb t1000e_companion_radio_ble t1000e_companion_radio_usb LilyGo_T-Echo-Lite_companion_radio_ble Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb; do
+            NAME="${ENV}-${TAG}-${HASH}"
+            cp ".pio/build/${ENV}/firmware.uf2" "out/${NAME}.uf2" 2>/dev/null || true
+            cp ".pio/build/${ENV}/firmware.zip" "out/${NAME}_dfu.zip" 2>/dev/null || true
+          done
           ls -la out/
 
       - name: Upload Workflow Artifacts
