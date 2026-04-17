@@ -1,0 +1,66 @@
+name: Build JP Firmwares
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'jp-v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Build Environment
+        uses: ./.github/actions/setup-build-environment
+
+      - name: Build JP Firmwares
+        env:
+          FIRMWARE_VERSION: ${{ env.GIT_TAG_VERSION }}
+          DISABLE_DEBUG: 1
+        run: |
+          bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
+          bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
+          bash build.sh build-firmware t1000e_companion_radio_ble
+          bash build.sh build-firmware t1000e_companion_radio_usb
+          bash build.sh build-firmware LilyGo_T-Echo-Lite_companion_radio_ble
+          bash build.sh build-firmware Xiao_nrf52_companion_radio_ble
+          bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
+
+      - name: Upload Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jp-firmwares
+          path: out
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: JP Firmware ${{ env.GIT_TAG_VERSION }}
+          body: |
+            ## 日本向け MeshCore ファームウェア
+
+            ### 対応デバイス
+            | デバイス | ファイル | 書き込み方法 |
+            |---|---|---|
+            | WisMesh Tag (RAK4631) | `RAK_WisMesh_Tag_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
+            | T1000-E | `t1000e_companion_radio_ble-*_dfu.zip` | DFU zip |
+            | T-Echo Lite | `LilyGo_T-Echo-Lite_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
+            | XIAO nRF52840 | `Xiao_nrf52_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
+
+            ### ⚠️ 日本での運用設定（必須）
+            フラッシュ後、スマホアプリで以下を設定してください：
+            - 周波数: `920.8 MHz`
+            - TX出力: `13 dBm以下`（デフォルト22 dBm → **要変更**）
+            - BW: `125 kHz` / SF: `12` / CR: `4/8`（都市部推奨）
+
+            ### 技適について
+            カスタムファームウェア書き込み後は技適の対象外です。詳細は README_JP.md を参照してください。
+          draft: true
+          files: out/*
