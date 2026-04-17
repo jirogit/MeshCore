@@ -24,12 +24,6 @@ jobs:
           FIRMWARE_VERSION: ${{ env.GIT_TAG_VERSION || 'dev' }}
         run: |
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
-          bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
-          bash build.sh build-firmware t1000e_companion_radio_ble
-          bash build.sh build-firmware t1000e_companion_radio_usb
-          bash build.sh build-firmware LilyGo_T-Echo-Lite_companion_radio_ble
-          bash build.sh build-firmware Xiao_nrf52_companion_radio_ble
-          bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
 
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v4
