@@ -27,6 +27,7 @@ jobs:
 
       - name: Copy artifacts to out/
         run: |
+          ls -la .pio/build/RAK_WisMesh_Tag_companion_radio_ble/ || echo "build dir missing"
           mkdir -p out
           for env in RAK_WisMesh_Tag_companion_radio_ble; do
             ver="${{ env.GIT_TAG_VERSION }}"
