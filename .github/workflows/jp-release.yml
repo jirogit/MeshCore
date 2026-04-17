@@ -25,6 +25,9 @@ jobs:
         run: |
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
 
+      - name: Debug - list out dir
+        run: ls -la out/ || echo "out/ does not exist or is empty"
+
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
