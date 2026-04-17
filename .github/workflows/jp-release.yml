@@ -26,13 +26,14 @@ jobs:
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
 
       - name: Copy artifacts to out/
-        env:
-          VER: ${{ env.GIT_TAG_VERSION || 'dev' }}
         run: |
           mkdir -p out
           HASH=$(git rev-parse --short HEAD)
-          cp .pio/build/RAK_WisMesh_Tag_companion_radio_ble/firmware.uf2 out/RAK_WisMesh_Tag_companion_radio_ble-${VER}-${HASH}.uf2
-          cp .pio/build/RAK_WisMesh_Tag_companion_radio_ble/firmware.zip out/RAK_WisMesh_Tag_companion_radio_ble-${VER}-${HASH}_dfu.zip
+          VER="${{ env.GIT_TAG_VERSION }}"
+          VER="${VER:-dev}"
+          NAME="RAK_WisMesh_Tag_companion_radio_ble-${VER}-${HASH}"
+          cp .pio/build/RAK_WisMesh_Tag_companion_radio_ble/firmware.uf2 "out/${NAME}.uf2"
+          cp .pio/build/RAK_WisMesh_Tag_companion_radio_ble/firmware.zip "out/${NAME}_dfu.zip"
           ls -la out/
 
       - name: Upload Workflow Artifacts
