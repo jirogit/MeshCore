@@ -54,7 +54,8 @@ jobs:
             variants/rak_wismesh_tag/platformio.ini \
             variants/t1000-e/platformio.ini \
             variants/lilygo_techo_lite/platformio.ini \
-            variants/xiao_nrf52/platformio.ini
+            variants/xiao_nrf52/platformio.ini \
+            variants/xiao_s3_wio/platformio.ini
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
           bash build.sh build-firmware t1000e_companion_radio_ble
@@ -62,6 +63,8 @@ jobs:
           bash build.sh build-firmware LilyGo_T-Echo-Lite_companion_radio_ble
           bash build.sh build-firmware Xiao_nrf52_companion_radio_ble
           bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
+          bash build.sh build-firmware Xiao_S3_WIO_companion_radio_ble
+          bash build.sh build-firmware Xiao_S3_WIO_companion_radio_usb
 
       - name: Copy artifacts to out/
         run: |
@@ -69,7 +72,7 @@ jobs:
           mkdir -p out_jp
           HASH=$(git rev-parse --short HEAD)
           TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
-          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb t1000e_companion_radio_ble t1000e_companion_radio_usb LilyGo_T-Echo-Lite_companion_radio_ble Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb; do
+          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb t1000e_companion_radio_ble t1000e_companion_radio_usb LilyGo_T-Echo-Lite_companion_radio_ble Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb; do
             NAME="${ENV}-${TAG}-${HASH}"
             cp ".pio/build/${ENV}/firmware.uf2" "out_jp/${NAME}.uf2" 2>/dev/null || true
             cp ".pio/build/${ENV}/firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
@@ -94,18 +97,18 @@ jobs:
             ### 対応デバイス
             | デバイス | ファイル | 書き込み方法 |
             |---|---|---|
-            | WisMesh Tag (RAK4631) | `RAK_WisMesh_Tag_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
-            | T1000-E | `t1000e_companion_radio_ble-*_dfu.zip` | DFU zip |
+            | WisMesh Tag | `RAK_WisMesh_Tag_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
+            | T1000-E | `t1000e_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
             | T-Echo Lite | `LilyGo_T-Echo-Lite_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
             | XIAO nRF52840 | `Xiao_nrf52_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
 
-            ### ⚠️ 日本での運用設定（必須）
-            フラッシュ後、スマホアプリで以下を設定してください：
+            ### 日本での運用設定
+            フラッシュ後、スマホアプリで以下を確認してください：
             - 周波数: `920.8 MHz`
-            - TX出力: `13 dBm以下`（デフォルト22 dBm → **要変更**）
+            - TX出力: `13 dBm以下`
             - BW: `125 kHz` / SF: `12` / CR: `4/8`（都市部推奨）
 
             ### 技適について
-            カスタムファームウェア書き込み後は技適の対象外です。詳細は README_JP.md を参照してください。
+            カスタムファームウェア書き込み後は技適の対象外です。詳細は [README_JP.md](https://github.com/jirogit/MeshCore/blob/dev/README_JP.md) を参照してください。
           draft: true
           files: out_jp/*
