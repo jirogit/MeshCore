@@ -48,6 +48,7 @@ jobs:
             -D RADIOLIB_EXCLUDE_SSTV=1
 
         run: |
+          mkdir -p out_jp
           # JP TX power制限 (13dBm)
           sed -i 's/-D LORA_TX_POWER=22/-D LORA_TX_POWER=13/g' \
             variants/rak_wismesh_tag/platformio.ini \
@@ -72,21 +73,22 @@ jobs:
       - name: Copy artifacts to out/
         run: |
           ls -la .pio/build/*/firmware.uf2 2>/dev/null || echo "no uf2 found"
-          mkdir -p out
+          mkdir -p out_jp
           HASH=$(git rev-parse --short HEAD)
           TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
-          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb t1000e_companion_radio_ble t1000e_companion_radio_usb LilyGo_T-Echo-Lite_companion_radio_ble Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb; do
+          for ENV in RAK_WisMesh_Tag_companion_radio_ble Xiao_nrf52_companion_radio_usb; do
             NAME="${ENV}-${TAG}-${HASH}"
-            cp ".pio/build/${ENV}/firmware.uf2" "out/${NAME}.uf2" 2>/dev/null || true
-            cp ".pio/build/${ENV}/firmware.zip" "out/${NAME}_dfu.zip" 2>/dev/null || true
+            cp ".pio/build/${ENV}/firmware.uf2" "out_jp/${NAME}.uf2" 2>/dev/null || true
+            cp ".pio/build/${ENV}/firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
           done
-          ls -la out/
+          ls -la out_jp/
 
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v4
+
         with:
           name: jp-firmwares
-          path: out
+          path: out_jp
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -113,4 +115,4 @@ jobs:
             ### 技適について
             カスタムファームウェア書き込み後は技適の対象外です。詳細は README_JP.md を参照してください。
           draft: true
-          files: out/*
+          files: out_jp/*
