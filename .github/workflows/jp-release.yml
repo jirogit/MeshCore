@@ -72,10 +72,15 @@ jobs:
           mkdir -p out_jp
           HASH=$(git rev-parse --short HEAD)
           TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
-          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb t1000e_companion_radio_ble t1000e_companion_radio_usb LilyGo_T-Echo-Lite_companion_radio_ble Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb; do
+          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb t1000e_companion_radio_ble t1000e_companion_radio_usb LilyGo_T-Echo-Lite_companion_radio_ble Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb; do
             NAME="${ENV}-${TAG}-${HASH}"
             cp ".pio/build/${ENV}/firmware.uf2" "out_jp/${NAME}.uf2" 2>/dev/null || true
             cp ".pio/build/${ENV}/firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
+           # ESP32系は.binと-merged.binをコピー
+          for ENV in Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb; do
+            NAME="${ENV}-${TAG}-${HASH}"
+            cp ".pio/build/${ENV}/firmware.bin" "out_jp/${NAME}.bin" 2>/dev/null || true
+            cp ".pio/build/${ENV}/firmware-merged.bin" "out_jp/${NAME}-merged.bin" 2>/dev/null || true
           done
           ls -la out_jp/
 
