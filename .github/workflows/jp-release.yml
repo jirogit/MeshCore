@@ -76,6 +76,7 @@ jobs:
             NAME="${ENV}-${TAG}-${HASH}"
             cp ".pio/build/${ENV}/firmware.uf2" "out_jp/${NAME}.uf2" 2>/dev/null || true
             cp ".pio/build/${ENV}/firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
+          done
            # ESP32系は.binと-merged.binをコピー
           for ENV in Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb; do
             NAME="${ENV}-${TAG}-${HASH}"
