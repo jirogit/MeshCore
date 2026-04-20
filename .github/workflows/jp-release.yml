@@ -51,19 +51,27 @@ jobs:
           # JP TX power制限 (13dBm)
           sed -i 's/-D LORA_TX_POWER=22/-D LORA_TX_POWER=13/g' \
             variants/rak_wismesh_tag/platformio.ini \
-            variants/t1000-e/platformio.ini \
-            variants/lilygo_techo_lite/platformio.ini \
             variants/xiao_nrf52/platformio.ini
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
-          bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
-          bash build.sh build-firmware t1000e_companion_radio_ble
-          bash build.sh build-firmware t1000e_companion_radio_usb
-          bash build.sh build-firmware LilyGo_T-Echo-Lite_companion_radio_ble
-          bash build.sh build-firmware Xiao_nrf52_companion_radio_ble
           bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
+
+          # JP TX power制限 (13dBm)
+          #          sed -i 's/-D LORA_TX_POWER=22/-D LORA_TX_POWER=13/g' \
+          #  variants/rak_wismesh_tag/platformio.ini \
+          #  variants/t1000-e/platformio.ini \
+          #  variants/lilygo_techo_lite/platformio.ini \
+          #  variants/xiao_nrf52/platformio.ini
+          # bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
+          # bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
+          #          bash build.sh build-firmware t1000e_companion_radio_ble
+          #    bash build.sh build-firmware t1000e_companion_radio_usb
+          # bash build.sh build-firmware LilyGo_T-Echo-Lite_companion_radio_ble
+          #bash build.sh build-firmware Xiao_nrf52_companion_radio_ble
+          #bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
 
       - name: Copy artifacts to out/
         run: |
+          ls -la .pio/build/*/firmware.uf2 2>/dev/null || echo "no uf2 found"
           mkdir -p out
           HASH=$(git rev-parse --short HEAD)
           TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
