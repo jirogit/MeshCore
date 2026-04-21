@@ -55,7 +55,8 @@ jobs:
             variants/t1000-e/platformio.ini \
             variants/lilygo_techo_lite/platformio.ini \
             variants/xiao_nrf52/platformio.ini \
-            variants/xiao_s3_wio/platformio.ini
+            variants/xiao_s3_wio/platformio.ini \
+            variants/heltec_t114/platformio.ini
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
           bash build.sh build-firmware t1000e_companion_radio_ble
@@ -65,6 +66,10 @@ jobs:
           bash build.sh build-firmware Xiao_nrf52_companion_radio_usb
           bash build.sh build-firmware Xiao_S3_WIO_companion_radio_ble
           bash build.sh build-firmware Xiao_S3_WIO_companion_radio_usb
+          bash build.sh build-firmware Heltec_t114_without_display_companion_radio_ble
+          bash build.sh build-firmware Heltec_t114_without_display_companion_radio_usb
+          bash build.sh build-firmware Heltec_t114_companion_radio_ble
+          bash build.sh build-firmware Heltec_t114_companion_radio_usb
 
       - name: Copy artifacts to out/
         run: |
@@ -78,7 +83,12 @@ jobs:
             cp ".pio/build/${ENV}/firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
           done
            # ESP32系は.binと-merged.binをコピー
-          for ENV in Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb; do
+          for ENV in Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb \
+                     Heltec_t114_without_display_companion_radio_ble \
+                     Heltec_t114_without_display_companion_radio_usb \
+                     Heltec_t114_companion_radio_ble \
+                     Heltec_t114_companion_radio_usb; do
+
             NAME="${ENV}-${TAG}-${HASH}"
             cp ".pio/build/${ENV}/firmware.bin" "out_jp/${NAME}.bin" 2>/dev/null || true
             cp ".pio/build/${ENV}/firmware-merged.bin" "out_jp/${NAME}-merged.bin" 2>/dev/null || true
@@ -107,6 +117,8 @@ jobs:
             | T1000-E | `t1000e_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
             | T-Echo Lite | `LilyGo_T-Echo-Lite_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
             | XIAO nRF52840 | `Xiao_nrf52_companion_radio_ble-*.uf2` | UF2ドラッグ&ドロップ |
+            | Heltec T114 (ディスプレイなし) | `Heltec_t114_without_display_companion_radio_ble-*.bin` | esptool/web flasher |
+            | Heltec T114 (ディスプレイあり) | `Heltec_t114_companion_radio_ble-*.bin` | esptool/web flasher |
 
             ### 日本での運用設定
             フラッシュ後、スマホアプリで以下を確認してください：
