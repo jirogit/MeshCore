@@ -148,7 +148,7 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
 
             // decrypt, checking MAC is valid
             uint8_t data[MAX_PACKET_PAYLOAD];
-            int len = Utils::MACThenDecrypt(secret, data, macAndData, pkt->payload_len - i, pkt->getPayloadVer());
+            int len = Utils::MACThenDecrypt(secret, data, macAndData, pkt->payload_len - i);
             if (len > 0) {  // success!
               if (pkt->getPayloadType() == PAYLOAD_TYPE_PATH) {
                 int k = 0;
@@ -200,7 +200,7 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
 
           // decrypt, checking MAC is valid
           uint8_t data[MAX_PACKET_PAYLOAD];
-          int len = Utils::MACThenDecrypt(secret, data, macAndData, pkt->payload_len - i, pkt->getPayloadVer());
+          int len = Utils::MACThenDecrypt(secret, data, macAndData, pkt->payload_len - i);
           if (len > 0) {  // success!
             onAnonDataRecv(pkt, secret, sender, data, len);
             pkt->markDoNotRetransmit();
@@ -226,7 +226,7 @@ DispatcherAction Mesh::onRecvPacket(Packet* pkt) {
         for (int j = 0; j < num; j++) {
           // decrypt, checking MAC is valid
           uint8_t data[MAX_PACKET_PAYLOAD];
-          int len = Utils::MACThenDecrypt(channels[j].secret, data, macAndData, pkt->payload_len - i, pkt->getPayloadVer());
+          int len = Utils::MACThenDecrypt(channels[j].secret, data, macAndData, pkt->payload_len - i);
           if (len > 0) {  // success!
             onGroupDataRecv(pkt, pkt->getPayloadType(), channels[j], data, len);
             break;
@@ -439,7 +439,7 @@ Packet* Mesh::createPathReturn(const uint8_t* dest_hash, const uint8_t* secret, 
     MESH_DEBUG_PRINTLN("%s Mesh::createPathReturn(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (PAYLOAD_TYPE_PATH << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (PAYLOAD_TYPE_PATH << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   int len = 0;
   memcpy(&packet->payload[len], dest_hash, PATH_HASH_SIZE); len += PATH_HASH_SIZE;  // dest hash
@@ -460,7 +460,7 @@ Packet* Mesh::createPathReturn(const uint8_t* dest_hash, const uint8_t* secret, 
       getRNG()->random(&data[data_len], 4); data_len += 4;
     }
 
-    len += Utils::encryptThenMAC(secret, &packet->payload[len], data, data_len);
+    len += Utils::encryptThenMAC(secret, &packet->payload[len], data, data_len, getRNG());
   }
 
   packet->payload_len = len;
@@ -470,7 +470,7 @@ Packet* Mesh::createPathReturn(const uint8_t* dest_hash, const uint8_t* secret, 
 
 Packet* Mesh::createDatagram(uint8_t type, const Identity& dest, const uint8_t* secret, const uint8_t* data, size_t data_len) {
   if (type == PAYLOAD_TYPE_TXT_MSG || type == PAYLOAD_TYPE_REQ || type == PAYLOAD_TYPE_RESPONSE) {
-    if (data_len + CIPHER_MAC_SIZE + CIPHER_BLOCK_SIZE-1 > MAX_PACKET_PAYLOAD) return NULL;
+    if (data_len + CIPHER_MAC_SIZE + CTR_IV_SIZE > MAX_PACKET_PAYLOAD) return NULL;
   } else {
     return NULL;  // invalid type
   }
@@ -480,12 +480,12 @@ Packet* Mesh::createDatagram(uint8_t type, const Identity& dest, const uint8_t* 
     MESH_DEBUG_PRINTLN("%s Mesh::createDatagram(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (type << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (type << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   int len = 0;
   len += dest.copyHashTo(&packet->payload[len]);  // dest hash
   len += self_id.copyHashTo(&packet->payload[len]);  // src hash
-  len += Utils::encryptThenMAC(secret, &packet->payload[len], data, data_len);
+  len += Utils::encryptThenMAC(secret, &packet->payload[len], data, data_len, getRNG());
 
   packet->payload_len = len;
 
@@ -504,7 +504,7 @@ Packet* Mesh::createAnonDatagram(uint8_t type, const LocalIdentity& sender, cons
     MESH_DEBUG_PRINTLN("%s Mesh::createAnonDatagram(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (type << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (type << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   int len = 0;
   if (type == PAYLOAD_TYPE_ANON_REQ) {
@@ -513,7 +513,7 @@ Packet* Mesh::createAnonDatagram(uint8_t type, const LocalIdentity& sender, cons
   } else {
     // FUTURE:
   }
-  len += Utils::encryptThenMAC(secret, &packet->payload[len], data, data_len);
+  len += Utils::encryptThenMAC(secret, &packet->payload[len], data, data_len, getRNG());
 
   packet->payload_len = len;
 
@@ -529,11 +529,11 @@ Packet* Mesh::createGroupDatagram(uint8_t type, const GroupChannel& channel, con
     MESH_DEBUG_PRINTLN("%s Mesh::createGroupDatagram(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (type << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (type << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   int len = 0;
   memcpy(&packet->payload[len], channel.hash, PATH_HASH_SIZE); len += PATH_HASH_SIZE;
-  len += Utils::encryptThenMAC(channel.secret, &packet->payload[len], data, data_len);
+  len += Utils::encryptThenMAC(channel.secret, &packet->payload[len], data, data_len, getRNG());
 
   packet->payload_len = len;
 
@@ -546,7 +546,7 @@ Packet* Mesh::createAck(const uint8_t* ack, uint8_t len) {
     MESH_DEBUG_PRINTLN("%s Mesh::createAck(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (PAYLOAD_TYPE_ACK << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (PAYLOAD_TYPE_ACK << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   memcpy(packet->payload, ack, len);
   packet->payload_len = len;
@@ -560,7 +560,7 @@ Packet* Mesh::createMultiAck(const uint8_t* ack, uint8_t len, uint8_t remaining)
     MESH_DEBUG_PRINTLN("%s Mesh::createMultiAck(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (PAYLOAD_TYPE_MULTIPART << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (PAYLOAD_TYPE_MULTIPART << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   packet->payload[0] = (remaining << 4) | PAYLOAD_TYPE_ACK;
   memcpy(&packet->payload[1], ack, len);
