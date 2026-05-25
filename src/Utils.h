@@ -52,7 +52,7 @@ public:
    * \brief  checks the MAC (in leading bytes of 'src'), then if valid, decrypts remaining bytes in src.
    * \returns  zero if MAC is invalid, otherwise the length of decrypted bytes in 'dest'
   */
-  static int MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len);
+  static int MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, uint8_t ver = 0);
 
   /**
    * \brief  converts 'src' bytes with given length to Hex representation, and null terminates.
