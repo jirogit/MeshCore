@@ -546,7 +546,7 @@ Packet* Mesh::createAck(const uint8_t* ack, uint8_t len) {
     MESH_DEBUG_PRINTLN("%s Mesh::createAck(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (PAYLOAD_TYPE_ACK << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (PAYLOAD_TYPE_ACK << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   memcpy(packet->payload, ack, len);
   packet->payload_len = len;
@@ -560,7 +560,7 @@ Packet* Mesh::createMultiAck(const uint8_t* ack, uint8_t len, uint8_t remaining)
     MESH_DEBUG_PRINTLN("%s Mesh::createMultiAck(): error, packet pool empty", getLogDateTime());
     return NULL;
   }
-  packet->header = (PAYLOAD_TYPE_MULTIPART << PH_TYPE_SHIFT);  // ROUTE_TYPE_* set later
+  packet->header = (PAYLOAD_TYPE_MULTIPART << PH_TYPE_SHIFT) | (PAYLOAD_VER_2 << PH_VER_SHIFT);  // ROUTE_TYPE_* set later
 
   packet->payload[0] = (remaining << 4) | PAYLOAD_TYPE_ACK;
   memcpy(&packet->payload[1], ack, len);
