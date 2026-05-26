@@ -4,6 +4,8 @@
 #include <Stream.h>
 #include <string.h>
 
+#define CTR_IV_SIZE  8   // 8B IV prepended to CTR ciphertext (2^64 unique IVs)
+
 namespace mesh {
 
 class RNG {
@@ -29,30 +31,24 @@ public:
   static void sha256(uint8_t *hash, size_t hash_len, const uint8_t* frag1, int frag1_len, const uint8_t* frag2, int frag2_len);
 
   /**
-   * \brief  Encrypts the 'src' bytes using AES128 cipher, using 'shared_secret' as key, with key length fixed at CIPHER_KEY_SIZE.
-   *         Final block is padded with zero bytes before encrypt. Result stored in 'dest'.
-   * \returns  The length in bytes put into 'dest'. (rounded up to block size)
+   * \brief  Encrypts src using AES-128-CTR. Generates CTR_IV_SIZE random IV via rng, prepends it to dest,
+   *         then encrypts src. No padding. Result stored in dest.
+   * \returns  CTR_IV_SIZE + src_len
   */
-  static int encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len);
+  static int encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, RNG* rng);
 
   /**
-   * \brief  Decrypt the 'src' bytes using AES128 cipher, using 'shared_secret' as key, with key length fixed at CIPHER_KEY_SIZE.
-   *         'src_len' should be multiple of block size, as returned by 'encrypt()'.
-   * \returns  The length in bytes put into 'dest'. (dest may contain trailing zero bytes in final block)
+   * \brief  encrypts bytes in src using AES-128-CTR (VER_2), then calculates MAC on ciphertext,
+   *         inserting into leading bytes of 'dest'.
+   * \returns  total length of bytes in 'dest' (MAC + IV + ciphertext)
   */
-  static int decrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len);
-
-  /**
-   * \brief  encrypts bytes in src, then calculates MAC on ciphertext, inserting into leading bytes of 'dest'.
-   * \returns  total length of bytes in 'dest' (MAC + ciphertext)
-  */
-  static int encryptThenMAC(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len);
+  static int encryptThenMAC(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, RNG* rng);
 
   /**
    * \brief  checks the MAC (in leading bytes of 'src'), then if valid, decrypts remaining bytes in src.
    * \returns  zero if MAC is invalid, otherwise the length of decrypted bytes in 'dest'
   */
-  static int MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, uint8_t ver = 0);
+  static int MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len);
 
   /**
    * \brief  converts 'src' bytes with given length to Hex representation, and null terminates.

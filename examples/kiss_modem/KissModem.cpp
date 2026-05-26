@@ -387,7 +387,7 @@ void KissModem::handleEncryptData(const uint8_t* data, uint16_t len) {
   uint16_t plaintext_len = len - PUB_KEY_SIZE;
 
   uint8_t buf[KISS_MAX_FRAME_SIZE];
-  int encrypted_len = mesh::Utils::encryptThenMAC(key, buf, plaintext, plaintext_len);
+  int encrypted_len = mesh::Utils::encryptThenMAC(key, buf, plaintext, plaintext_len, &_rng);
 
   if (encrypted_len > 0) {
     writeHardwareFrame(HW_RESP(HW_CMD_ENCRYPT_DATA), buf, encrypted_len);

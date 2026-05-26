@@ -1,4 +1,5 @@
 #include "Utils.h"
+#include "Packet.h"
 #include <AES.h>
 #include <CTR.h>
 #include <SHA256.h>
@@ -6,8 +7,6 @@
 #ifdef ARDUINO
   #include <Arduino.h>
 #endif
-
-#define CTR_IV_SIZE  8   // 8B IV for CTR mode (2^64 unique IVs, adequate for LoRa mesh scale)
 
 namespace mesh {
 
@@ -30,20 +29,6 @@ void Utils::sha256(uint8_t *hash, size_t hash_len, const uint8_t* frag1, int fra
   sha.finalize(hash, hash_len);
 }
 
-int Utils::decrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
-  // ECB decrypt (VER_1, legacy) — kept for Phase 1 backward compatibility
-  AES128 aes;
-  uint8_t* dp = dest;
-  const uint8_t* sp = src;
-
-  aes.setKey(shared_secret, CIPHER_KEY_SIZE);
-  while (sp - src < src_len) {
-    aes.decryptBlock(dp, sp);
-    dp += 16; sp += 16;
-  }
-
-  return sp - src;  // will always be multiple of 16
-}
 
 static int decryptCTR(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
   // CTR decrypt (VER_2): src = [IV 8B][ciphertext src_len-8 B]
@@ -53,7 +38,8 @@ static int decryptCTR(const uint8_t* shared_secret, uint8_t* dest, const uint8_t
   memset(iv, 0, 16);
   memcpy(iv, src, CTR_IV_SIZE);   // first 8B from packet; upper 8B stay zero
 
-  CTR<AES128> ctr;
+  // static to avoid ~230B stack allocation on every decrypt (safe: single-threaded Arduino loop)
+  static CTR<AES128> ctr;
   ctr.setKey(shared_secret, CIPHER_KEY_SIZE);
   ctr.setIV(iv, 16);
   ctr.decrypt(dest, src + CTR_IV_SIZE, src_len - CTR_IV_SIZE);
@@ -61,27 +47,27 @@ static int decryptCTR(const uint8_t* shared_secret, uint8_t* dest, const uint8_t
   return src_len - CTR_IV_SIZE;
 }
 
-int Utils::encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
-  AES128 aes;
-  uint8_t* dp = dest;
+int Utils::encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, RNG* rng) {
+  // CTR encrypt (VER_2): dest = [IV CTR_IV_SIZE B][ciphertext src_len B]
+  if (!rng) return 0;  // null guard: should never happen, but prevents hard fault
 
-  aes.setKey(shared_secret, CIPHER_KEY_SIZE);
-  while (src_len >= 16) {
-    aes.encryptBlock(dp, src);
-    dp += 16; src += 16; src_len -= 16;
-  }
-  if (src_len > 0) {  // remaining partial block
-    uint8_t tmp[16];
-    memset(tmp, 0, 16);
-    memcpy(tmp, src, src_len);
-    aes.encryptBlock(dp, tmp);
-    dp += 16;
-  }
-  return dp - dest;  // will always be multiple of 16
+  rng->random(dest, CTR_IV_SIZE);
+
+  uint8_t iv[16];
+  memset(iv, 0, 16);
+  memcpy(iv, dest, CTR_IV_SIZE);
+
+  // static to avoid ~230B stack allocation on every encrypt (safe: single-threaded Arduino loop)
+  static CTR<AES128> ctr;
+  ctr.setKey(shared_secret, CIPHER_KEY_SIZE);
+  ctr.setIV(iv, 16);
+  ctr.encrypt(dest + CTR_IV_SIZE, src, src_len);
+
+  return CTR_IV_SIZE + src_len;
 }
 
-int Utils::encryptThenMAC(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
-  int enc_len = encrypt(shared_secret, dest + CIPHER_MAC_SIZE, src, src_len);
+int Utils::encryptThenMAC(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, RNG* rng) {
+  int enc_len = encrypt(shared_secret, dest + CIPHER_MAC_SIZE, src, src_len, rng);
 
   SHA256 sha;
   sha.resetHMAC(shared_secret, PUB_KEY_SIZE);
@@ -91,9 +77,8 @@ int Utils::encryptThenMAC(const uint8_t* shared_secret, uint8_t* dest, const uin
   return CIPHER_MAC_SIZE + enc_len;
 }
 
-int Utils::MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len, uint8_t ver) {
-  int min_len = (ver == PAYLOAD_VER_2) ? CIPHER_MAC_SIZE + CTR_IV_SIZE : CIPHER_MAC_SIZE;
-  if (src_len <= min_len) return 0;  // invalid src bytes
+int Utils::MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
+  if (src_len <= CIPHER_MAC_SIZE + CTR_IV_SIZE) return 0;  // invalid src bytes
 
   uint8_t hmac[CIPHER_MAC_SIZE];
   {
@@ -103,11 +88,7 @@ int Utils::MACThenDecrypt(const uint8_t* shared_secret, uint8_t* dest, const uin
     sha.finalizeHMAC(shared_secret, PUB_KEY_SIZE, hmac, CIPHER_MAC_SIZE);
   }
   if (memcmp(hmac, src, CIPHER_MAC_SIZE) == 0) {
-    if (ver == PAYLOAD_VER_2) {
-      return decryptCTR(shared_secret, dest, src + CIPHER_MAC_SIZE, src_len - CIPHER_MAC_SIZE);
-    } else {
-      return decrypt(shared_secret, dest, src + CIPHER_MAC_SIZE, src_len - CIPHER_MAC_SIZE);
-    }
+    return decryptCTR(shared_secret, dest, src + CIPHER_MAC_SIZE, src_len - CIPHER_MAC_SIZE);
   }
   return 0; // invalid HMAC
 }
