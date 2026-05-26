@@ -1,4 +1,5 @@
 #include "Utils.h"
+#include "Packet.h"
 #include <AES.h>
 #include <CTR.h>
 #include <SHA256.h>
