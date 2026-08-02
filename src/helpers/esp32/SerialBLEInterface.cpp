@@ -190,15 +190,23 @@ size_t SerialBLEInterface::checkRecvFrame(uint8_t dest[]) {
   if (send_queue_len > 0   // first, check send queue
     && millis() >= _last_write + BLE_WRITE_MIN_INTERVAL    // space the writes apart
   ) {
-    _last_write = millis();
-    pTxCharacteristic->setValue(send_queue[0].buf, send_queue[0].len);
-    pTxCharacteristic->notify();
+    _last_write = millis();   // also throttles CCCD-not-ready retries below
 
-    BLE_DEBUG_PRINTLN("writeBytes: sz=%d, hdr=%d", (uint32_t)send_queue[0].len, (uint32_t) send_queue[0].buf[0]);
+    // client hasn't written CCCD yet -- notify() would silently drop the frame with
+    // no error, so hold it in the queue and retry on a later loop instead
+    BLE2902* p2902 = (BLE2902 *) pTxCharacteristic->getDescriptorByUUID((uint16_t)0x2902);
+    if (p2902 == nullptr || !p2902->getNotifications()) {
+      BLE_DEBUG_PRINTLN("writeBytes: CCCD not subscribed yet, deferring sz=%d, hdr=%d", (uint32_t)send_queue[0].len, (uint32_t) send_queue[0].buf[0]);
+    } else {
+      pTxCharacteristic->setValue(send_queue[0].buf, send_queue[0].len);
+      pTxCharacteristic->notify();
 
-    send_queue_len--;
-    for (int i = 0; i < send_queue_len; i++) {   // delete top item from queue
-      send_queue[i] = send_queue[i + 1];
+      BLE_DEBUG_PRINTLN("writeBytes: sz=%d, hdr=%d", (uint32_t)send_queue[0].len, (uint32_t) send_queue[0].buf[0]);
+
+      send_queue_len--;
+      for (int i = 0; i < send_queue_len; i++) {   // delete top item from queue
+        send_queue[i] = send_queue[i + 1];
+      }
     }
   }
 
