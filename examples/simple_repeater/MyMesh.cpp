@@ -1250,6 +1250,27 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
         strcpy(reply, "Err - bad pubkey");
       }
     }
+  } else if (memcmp(command, "lna.test", 8) == 0) {
+    const int N = 10;
+    float sum_on = 0, sum_off = 0;
+    uint8_t reg_val;
+
+    board.setLNAEnabled(true);
+    delay(5);
+    board.readOutSetRaw(&reg_val);  // ★追加：レジスタ読み戻し確認用
+    MESH_DEBUG_PRINTLN("LNA ON: OUT_SET=0x%02X", reg_val);
+    for (int i = 0; i < N; i++) { sum_on += radio_driver.getCurrentRSSI(); delay(10); }
+
+    board.setLNAEnabled(false);
+    delay(5);
+    board.readOutSetRaw(&reg_val);  // ★追加
+    MESH_DEBUG_PRINTLN("LNA OFF: OUT_SET=0x%02X", reg_val);
+    for (int i = 0; i < N; i++) { sum_off += radio_driver.getCurrentRSSI(); delay(10); }
+
+    board.setLNAEnabled(true);  // 必ずONに戻す
+
+    float avg_on = sum_on / N, avg_off = sum_off / N;
+    sprintf(reply, "LNA ON avg=%.1f OFF avg=%.1f delta=%.1f", avg_on, avg_off, avg_on - avg_off);
   } else if (sender_timestamp == 0 && strcmp(command, "get acl") == 0) {
     Serial.println("ACL:");
     for (int i = 0; i < acl.getNumClients(); i++) {

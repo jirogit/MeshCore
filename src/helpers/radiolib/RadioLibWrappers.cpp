@@ -78,7 +78,9 @@ void RadioLibWrapper::resetAGC() {
   // make sure we're not mid-receive of packet!
   if ((state & STATE_INT_READY) != 0 || isReceivingPacket()) return;
 
+  MESH_DEBUG_PRINTLN("resetAGC: called, current noise_floor=%d", _noise_floor);
   doResetAGC();
+  last_agc_reset_time = millis();  // TEMP for Issue #19
   state = STATE_IDLE;   // trigger a startReceive()
 
   // Reset noise floor sampling so it reconverges from scratch.
@@ -206,6 +208,8 @@ bool RadioLibWrapper::isChannelActive() {
     while (millis() - sense_start < 5) {
       if (getCurrentRSSI() > -80.0f) {
         _busy_count++;
+        MESH_DEBUG_PRINTLN("isChannelActive: RSSI=%.1f busy_count=%u since_reset=%u",
+                            getCurrentRSSI(), _busy_count, millis() - last_agc_reset_time);
         uint32_t base_ms = 500;
         uint32_t max_backoff = min(base_ms * (1u << _busy_count), (uint32_t)4000);
         uint32_t backoff_until = millis() + random(max_backoff / 2, max_backoff);
@@ -222,6 +226,7 @@ bool RadioLibWrapper::isChannelActive() {
     //   /16 -> SF12/BW125 ~490ms, SF7/BW62.5 ~25ms
     //   /32 -> SF12/BW125 ~245ms, SF7/BW62.5 ~12ms  (default)
     _busy_count = 0;
+    MESH_DEBUG_PRINTLN("isChannelActive: channel CLEAR");
     uint32_t airtime_ms = getEstAirtimeFor(MAX_TRANS_UNIT);
     uint32_t jitter_until = millis() + random(0, airtime_ms / JP_LBT_JITTER_DIVISOR);
     while (millis() < jitter_until) {

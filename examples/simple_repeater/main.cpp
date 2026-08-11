@@ -3,6 +3,18 @@
 
 #include "MyMesh.h"
 
+#include <WiFi.h>
+#include <esp_bt.h>
+#include <esp_wifi.h>
+
+void quietRF() {
+  WiFi.mode(WIFI_OFF);
+  esp_wifi_stop();
+  esp_wifi_deinit();
+  esp_bt_controller_disable();
+  esp_bt_controller_deinit();
+}
+
 #ifdef DISPLAY_CLASS
   #include "UITask.h"
   static UITask ui_task(board, display);
@@ -36,6 +48,8 @@ static unsigned long userBtnDownAt = 0;
 #endif
 
 void setup() {
+  quietRF();
+
   Serial.begin(115200);
   delay(1000);
 

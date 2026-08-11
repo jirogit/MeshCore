@@ -40,6 +40,8 @@ mesh::Packet* PacketQueue::get(uint32_t now) {
     _schedule_table[i] = _schedule_table[i+1];
     i++;
   }
+  MESH_DEBUG_PRINTLN("PacketQueue::get: selected pri=%d idx=%d (queue depth=%d)",
+                      _pri_table[best_idx], best_idx, _num);
   return top;
 }
 

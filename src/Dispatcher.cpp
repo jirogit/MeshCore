@@ -297,6 +297,9 @@ void Dispatcher::checkSend() {
       cad_busy_start = _ms->getMillis();   // record when CAD busy state started
     }
 
+    MESH_DEBUG_PRINTLN("checkSend: isReceiving=true, cad_busy_start=%u, elapsed=%u",
+                        cad_busy_start, _ms->getMillis() - cad_busy_start);
+
     if (_ms->getMillis() - cad_busy_start > getCADFailMaxDuration()) {
       _err_flags |= ERR_EVENT_CAD_TIMEOUT;
 

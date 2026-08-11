@@ -22,6 +22,7 @@ protected:
   uint16_t _num_floor_samples;
   int32_t _floor_sample_sum;
   uint8_t _preamble_sf;
+  uint32_t last_agc_reset_time = 0;  // TEMP for Issue #19
 
   void idle();
   void startRecv();

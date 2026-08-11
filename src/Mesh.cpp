@@ -641,6 +641,7 @@ void Mesh::sendFlood(Packet* packet, uint32_t delay_millis, uint8_t path_hash_si
   }
   if (path_hash_size == 0 || path_hash_size > 3) {
     MESH_DEBUG_PRINTLN("%s Mesh::sendFlood(): invalid path_hash_size", getLogDateTime());
+    MESH_DEBUG_PRINTLN("sendFlood: ADVERT REJECTED invalid path_hash_size=%u", path_hash_size);
     return;
   }
 
@@ -655,6 +656,7 @@ void Mesh::sendFlood(Packet* packet, uint32_t delay_millis, uint8_t path_hash_si
     pri = 2;
   } else if (packet->getPayloadType() == PAYLOAD_TYPE_ADVERT) {
     pri = 3;   // de-prioritie these
+    MESH_DEBUG_PRINTLN("sendFlood: queued ADVERT pri=3 path_hash_size=%u", path_hash_size);
   } else {
     pri = 1;
   }

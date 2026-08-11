@@ -93,6 +93,20 @@ public:
     resetLoRaViaPI4IO();
   }
 
+  // TEMP for Issue #19 LNA offset測定用。テスト後に削除すること
+  void setLNAEnabled(bool on) {
+    uint8_t in_data;
+    i2c_read_byte(PI4IO_ADDR, PI4IO_REG_OUT_SET, &in_data);
+    if (on) in_data |= (1 << 5);
+    else    in_data &= ~(1 << 5);
+    i2c_write_byte(PI4IO_ADDR, PI4IO_REG_OUT_SET, in_data);
+  }
+
+  // TEMP for Issue #19
+  bool readOutSetRaw(uint8_t *value) {
+    return i2c_read_byte(PI4IO_ADDR, PI4IO_REG_OUT_SET, value);
+  }
+
   const char* getManufacturerName() const override {
     return "Unit C6L";
   }
