@@ -25,7 +25,7 @@ jobs:
 
           PLATFORMIO_BUILD_FLAGS: >-
             -w -DNDEBUG -DRADIOLIB_STATIC_ONLY=1 -DRADIOLIB_GODMODE=1
-            -D LORA_FREQ=920.800
+            -D LORA_FREQ=921.000
             -D LORA_BW=125.0
             -D LORA_SF=10
             -D LORA_CR=6
@@ -160,7 +160,7 @@ jobs:
 
             ### 日本での運用設定
             フラッシュ後、スマホアプリで以下を確認してください：
-            - 周波数: `920.8 MHz`
+            - 周波数: `921.0 MHz`
             - TX出力: `13 dBm以下`（XIAO nRF52840/XIAO ESP32S3+Wio-SX1262/Wio Tracker L1 Proは`10 dBm以下`、T1000-Eは`12 dBm以下`）
             - BW: `125 kHz` / SF: `10` / CR: `4/6`
 
