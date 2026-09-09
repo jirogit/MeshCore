@@ -59,9 +59,21 @@ int Dispatcher::calcRxDelay(float score, uint32_t air_time) const {
 uint32_t Dispatcher::getCADFailRetryDelay() const {
   return 200;
 }
+// a max-wait of zero means 'unlimited', which is the strictest setting of all, so normalise it
+// to the largest representable duration before any comparison.
+static uint32_t normMaxWait(uint16_t ms) {
+  return ms == 0 ? 0xFFFFFFFFUL : (uint32_t) ms;
+}
+
 uint32_t Dispatcher::getCADFailMaxDuration() const {
-  if (_radio->isAS923_1_JP()) return UINT32_MAX;  // ARIB STD-T108: never force TX during LBT
-  return 4000;   // 4 seconds
+  // rssi.lbt is the only mechanism with a configurable max-wait; CAD's is the fixed upstream
+  // 4000ms. With rssi.lbt off this is byte-for-byte the original hard-coded behaviour. With
+  // both active, the stricter (longer) of the two wins -- CAD's fixed wait never gets to
+  // shorten a max-wait that rssi.lbt asked to be longer.
+  if (!getRssiLbtEnabled()) return 4000;   // 4 seconds, upstream default, untouched
+  uint32_t rssi = normMaxWait(getRssiLbtMaxwaitMs());
+  if (!getCADEnabled()) return rssi;
+  return rssi > 4000 ? rssi : 4000;
 }
 
 uint32_t Dispatcher::getMaxTxAirtimeMs() const {
@@ -331,12 +343,13 @@ void Dispatcher::checkSend() {
     } else {
       memcpy(&raw[len], outbound->payload, outbound->payload_len); len += outbound->payload_len;
 
-      uint32_t send_airtime = _radio->getEstAirtimeFor(len);
-      if (send_airtime > getMaxTxAirtimeMs()) {
-        MESH_DEBUG_PRINTLN("%s Dispatcher::checkSend(): DROPPED, airtime %dms exceeds limit", getLogDateTime(), send_airtime);
-        n_tx_dropped_airtime++;
-        logTxFail(outbound, len);
-        releasePacket(outbound);
+      uint16_t txmax = getRssiLbtTxmaxMs();
+      if (getRssiLbtEnabled() && txmax != 0 && _radio->getEstAirtimeFor(len) > txmax) {
+        MESH_DEBUG_PRINTLN("%s Dispatcher::checkSend(): packet airtime exceeds rssi.lbt txmax, dropping, len=%d", getLogDateTime(), len);
+
+        logTxFail(outbound, outbound->getRawLength());
+
+        releasePacket(outbound);  // return to pool
         outbound = NULL;
         return;
       }
