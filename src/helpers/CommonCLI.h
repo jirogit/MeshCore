@@ -104,13 +104,13 @@ private:
     float getBandwidth() const override { return _parent->bw; }
     void setBandwidth(float bw) override { _parent->bw = bw; markDirty(); }
     uint8_t getSpreadFactor() const override { return _parent->sf; }
-    void setSpreadFactor(uint8_t sf) override { _parent->sf; markDirty(); }
+    void setSpreadFactor(uint8_t sf) override { _parent->sf = sf; markDirty(); }
     uint8_t getCodingRate() const override { return _parent->cr; }
     void setCodingRate(uint8_t cr) override { _parent->cr = cr; markDirty(); }
     float getAirtimeFactor() const override { return _parent->airtime_factor; }
     void setAirtimeFactor(float af) override { _parent->airtime_factor = af; markDirty(); }
     bool isCadEnabled() const override { return _parent->cad_enabled; }
-    void setCadEnabled(bool en) override { _parent->cad_enabled; markDirty(); }
+    void setCadEnabled(bool en) override { _parent->cad_enabled = en; markDirty(); }
     uint8_t getIntThresh() const override { return _parent->interference_threshold; }
     void setIntThresh(uint8_t t) override { _parent->interference_threshold = t; markDirty(); }
     uint8_t getRxGain() const override { return _parent->rx_boosted_gain; }
@@ -236,8 +236,8 @@ public:
   CommonRadioPrefs* getRadioPrefs() { return &radio; }
   KeyValueStore* getCustom() { return &custom; }
 
-  bool isDirty() const override { return ConfigSerializer::isDirty() || radio.isDirty(); }
-  void clearDirty() override { ConfigSerializer::clearDirty(); radio.clearDirty(); }
+  bool isDirty() const override { return ConfigSerializer::isDirty() || radio.isDirty() || custom.isDirty(); }
+  void clearDirty() override { ConfigSerializer::clearDirty(); radio.clearDirty(); custom.clearDirty(); }
 };
 
 class CommonCLICallbacks {

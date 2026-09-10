@@ -6,7 +6,7 @@
 #define KEY_SEP_CHAR    ':'
 #define KEY_SEP_STR     ":"
 
-bool DynamicConfigSerializer::setByKey(const char* key, const char* value) {
+bool DynamicConfigSerializer::setByKeyPrv(const char* key, const char* value) {
   if (_fallback && _fallback->setByKey(key, value)) return true;
 
   // TODO: guard for bad chars (':' or '|')
@@ -34,6 +34,9 @@ bool DynamicConfigSerializer::setByKey(const char* key, const char* value) {
   }
   // now append new key/value (if it fits)
   if (strlen(new_config) + strlen(key) + strlen(value) + 2 < sizeof(_config)-1) {
+    if (new_config[0]) {
+      strcat(new_config, PROP_SEP_STR);
+    }
     strcat(new_config, key);
     strcat(new_config, KEY_SEP_STR);
     strcat(new_config, value);
@@ -41,6 +44,14 @@ bool DynamicConfigSerializer::setByKey(const char* key, const char* value) {
     return true;
   }
   return false;   // didn't fit in _config[]
+}
+
+bool DynamicConfigSerializer::setByKey(const char* key, const char* value) {
+  if (setByKeyPrv(key, value)) {
+    markDirty();
+    return true;
+  }
+  return false;
 }
 
 bool DynamicConfigSerializer::getByKey(const char* key, char* value, size_t max_len) {
@@ -65,19 +76,22 @@ bool DynamicConfigSerializer::getByKey(const char* key, char* value, size_t max_
 }
 
 void DynamicConfigSerializer::structure() {
-  char tmp[MAX_DYNAMIC_CONFG];
-  strcpy(tmp, _config);  // make a (modifiable) copy
+  if (_context->op() == OP::WRITE) {
+    char tmp[MAX_DYNAMIC_CONFG];
+    strcpy(tmp, _config);  // make a (modifiable) copy
 
-  const char* parts[8];
-  int n = mesh::Utils::parseTextParts(tmp, parts, 8, PROP_SEP_CHAR);
+    const char* parts[8];
+    int n = mesh::Utils::parseTextParts(tmp, parts, 8, PROP_SEP_CHAR);
 
-  // dynamically call def()'s
-  for (int i = 0; i < n; i++) {
-    char* item = (char *) parts[i];
-    char* eq = strchr(item, KEY_SEP_CHAR);
-    if (eq) {
-      *eq = 0;   // replace separator with null terminator
-      def(item, eq + 1, MAX_DYNAMIC_CONFG/2);  // maximum HALF of total for individual property value
+    for (int i = 0; i < n; i++) {
+      char* item = (char *) parts[i];
+      char* eq = strchr(item, KEY_SEP_CHAR);
+      if (eq) {
+        *eq = 0;   // replace separator with null terminator
+        def(item, eq + 1, MAX_DYNAMIC_CONFG/2);
+      }
     }
+  } else {
+    setByKeyPrv(_context->getKey(getDepth()), _context->getToken());
   }
 }

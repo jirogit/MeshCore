@@ -19,6 +19,7 @@ class ConfigSerializer {
   int8_t _depth;
   bool _dirty = false;
 
+protected:
   enum OP { READ, WRITE };
 
   class Context {
@@ -39,13 +40,14 @@ class ConfigSerializer {
     const char* getToken() const { return rd_buf; }
     bool keyMatch(int8_t depth, const char* key) { return strcmp(key, _keys[depth]) == 0; }
     void setKey(uint8_t depth, const char* key) { strcpy(_keys[depth], key);  }
+    const char* getKey(uint8_t depth) { return _keys[depth]; }
   };
 
   Context* _context = NULL;
+  int8_t getDepth() const { return _depth; }
 
   void writeComma();
 
-protected:
   ConfigSerializer() { }
 
   void def(const char* key, char* value, size_t max_len);  // max_len inclusive of null

@@ -1,3 +1,4 @@
+#pragma once
 #include "ConfigSerializer.h"
 #include "KeyValueStore.h"
 
@@ -8,6 +9,8 @@
 class DynamicConfigSerializer : public ConfigSerializer, public KeyValueStore {
   char _config[MAX_DYNAMIC_CONFG];
   KeyValueStore* _fallback;
+
+  bool setByKeyPrv(const char* key, const char* value);
 
 protected:
   void structure() override;
