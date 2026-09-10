@@ -31,6 +31,7 @@ jobs:
             -D LORA_CR=6
             -D 'ALLOWED_REPEAT_FREQ_RANGE={921200,921200}'
             -D ENABLE_ADVERT_ON_BOOT=1
+            -D RSSI_LBT_DEFAULT_ON=1
             -D ENABLE_PRIVATE_KEY_IMPORT=1
             -D ENABLE_PRIVATE_KEY_EXPORT=1
             -D RADIOLIB_EXCLUDE_CC1101=1

@@ -44,7 +44,13 @@ public:
   uint8_t path_hash_mode = 0;    // which path mode to use when sending
   uint8_t autoadd_max_hops = 0;  // 0 = no limit, 1 = direct (0 hops), N = up to N-1 hops (max 64)
   uint8_t cad_enabled = 0;
+  // Deployments in regions where listen-before-talk is a regulatory requirement
+  // need this on from first boot, before any CLI access.
+#ifdef RSSI_LBT_DEFAULT_ON
+  uint8_t rssi_lbt_enabled = 1;    // RSSI listen-before-talk (boolean)
+#else
   uint8_t rssi_lbt_enabled = 0;    // RSSI listen-before-talk (boolean)
+#endif
   int8_t rssi_lbt_thr_dbm = -80;   // absolute RSSI threshold, above which the channel counts as busy
   uint16_t rssi_lbt_sense_ms = 5;  // how long to sample RSSI for
   uint16_t rssi_lbt_maxwait_ms = 0;   // max time to wait out a busy channel before forcing TX (0 = unlimited)
