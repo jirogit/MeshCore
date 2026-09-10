@@ -81,8 +81,6 @@ public:
   virtual float getLastRSSI() const { return 0; }
   virtual float getLastSNR() const { return 0; }
 
-  virtual bool isAS923_1_JP() const { return false; }
-
   virtual int getMaxTextLen() const { return 10 * 16; }       // default 160 bytes
   virtual int getMaxGroupTextLen() const { return 10 * 16; }  // default 160 bytes
 };
@@ -132,7 +130,7 @@ class Dispatcher {
   bool  prev_isrecv_mode;
   uint32_t n_sent_flood, n_sent_direct;
   uint32_t n_recv_flood, n_recv_direct;
-  uint32_t n_tx_dropped_airtime;   // packets dropped: would exceed getMaxTxAirtimeMs()
+  uint32_t n_tx_dropped_airtime;   // packets dropped: would exceed rssi.lbt txmax
   unsigned long tx_budget_ms;
   unsigned long last_budget_update;
   unsigned long duty_cycle_window_ms;
@@ -176,7 +174,6 @@ protected:
   virtual int calcRxDelay(float score, uint32_t air_time) const;
   virtual uint32_t getCADFailRetryDelay() const;
   virtual uint32_t getCADFailMaxDuration() const;
-  virtual uint32_t getMaxTxAirtimeMs() const;   // single-transmission airtime cap (JP: 4000ms per ARIB STD-T108)
   virtual int getInterferenceThreshold() const { return 0; }    // disabled by default
   virtual bool getCADEnabled() const { return false; }    // hardware CAD disabled by default
   virtual bool getRssiLbtEnabled() const { return false; }   // RSSI listen-before-talk disabled by default

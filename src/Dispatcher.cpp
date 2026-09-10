@@ -76,11 +76,6 @@ uint32_t Dispatcher::getCADFailMaxDuration() const {
   return rssi > 4000 ? rssi : 4000;
 }
 
-uint32_t Dispatcher::getMaxTxAirtimeMs() const {
-  if (_radio->isAS923_1_JP()) return 4000;   // ARIB STD-T108: single transmission must be <=4s
-  return UINT32_MAX;   // no limit for other regions
-}
-
 void Dispatcher::loop() {
   if (millisHasNowPassed(next_floor_calib_time)) {
     _radio->triggerNoiseFloorCalibrate(getInterferenceThreshold());
@@ -346,6 +341,7 @@ void Dispatcher::checkSend() {
       uint16_t txmax = getRssiLbtTxmaxMs();
       if (getRssiLbtEnabled() && txmax != 0 && _radio->getEstAirtimeFor(len) > txmax) {
         MESH_DEBUG_PRINTLN("%s Dispatcher::checkSend(): packet airtime exceeds rssi.lbt txmax, dropping, len=%d", getLogDateTime(), len);
+        n_tx_dropped_airtime++;
 
         logTxFail(outbound, outbound->getRawLength());
 
