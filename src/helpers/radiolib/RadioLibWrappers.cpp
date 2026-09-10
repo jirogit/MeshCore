@@ -198,9 +198,6 @@ bool RadioLibWrapper::isSendComplete() {
 void RadioLibWrapper::onSendFinished() {
   _radio->finishTransmit();
   _board->onAfterTransmit();
-  if (isAS923_1_JP()) {
-    delay(50);  // ARIB STD-T108 §3.4.1: >= 50ms between transmissions
-  }
   state = STATE_IDLE;
 
   // rssi.lbt: quiet period after every transmit
@@ -214,21 +211,28 @@ int16_t RadioLibWrapper::performChannelScan() {
 }
 
 bool RadioLibWrapper::isChannelActive() {
-  if (isAS923_1_JP()) {
-    // ARIB STD-T108: 5ms continuous RSSI sensing, -80dBm absolute threshold
-    uint32_t sense_start = millis();
-    while (millis() - sense_start < 5) {
-      if (getCurrentRSSI() > -80.0f) {
-        _busy_count++;
-        uint32_t base_ms = 500;
-        uint32_t max_backoff = min(base_ms * (1u << _busy_count), (uint32_t)4000);
-        uint32_t backoff_until = millis() + random(max_backoff / 2, max_backoff);
-        while (millis() < backoff_until) {
-          YIELD_TASK();
-        }
-        return true;
+  // RSSI-based interference detection (relative to noise floor)
+  if (_threshold != 0 && getCurrentRSSI() > _noise_floor + _threshold) return true;
+
+  // rssi.lbt: energy detection against an absolute threshold, sampled continuously
+  // over a sensing window. Unlike CAD this is independent of the modulation on air.
+  if (_rssi_lbt_enabled) {
+    uint32_t start = millis();
+    bool busy = false;
+    do {
+      if (getCurrentRSSI() > _rssi_lbt_thr_dbm) { busy = true; break; }
+    } while (millis() - start < _rssi_lbt_sense_ms);
+
+    if (busy) {
+      // Exponential backoff on busy, previously JP-only, now applies whenever rssi.lbt is enabled.
+      _busy_count++;
+      uint32_t base_ms = 500;
+      uint32_t max_backoff = min(base_ms * (1u << _busy_count), (uint32_t)4000);
+      uint32_t backoff_until = millis() + random(max_backoff / 2, max_backoff);
+      while (millis() < backoff_until) {
+        YIELD_TASK();
       }
-      YIELD_TASK();
+      return true;
     }
     // Channel free: reset busy counter and add airtime-scaled jitter.
     // JP_LBT_JITTER_DIVISOR controls jitter upper bound:
@@ -241,22 +245,9 @@ bool RadioLibWrapper::isChannelActive() {
     while (millis() < jitter_until) {
       YIELD_TASK();
     }
-    // JP RSSI sensing passed; fall through to CAD if enabled
-  } else {
-    // Non-JP: RSSI-based interference detection (relative to noise floor)
-    if (_threshold != 0 && getCurrentRSSI() > _noise_floor + _threshold) return true;
   }
 
-  // rssi.lbt: energy detection against an absolute threshold, sampled continuously
-  // over a sensing window. Unlike CAD this is independent of the modulation on air.
-  if (_rssi_lbt_enabled) {
-    uint32_t start = millis();
-    do {
-      if (getCurrentRSSI() > _rssi_lbt_thr_dbm) return true;
-    } while (millis() - start < _rssi_lbt_sense_ms);
-  }
-
-  // cad: hardware channel activity detection (JP and non-JP)
+  // cad: hardware channel activity detection
   if (_cad_enabled) {
     int16_t result = performChannelScan();
     // scanChannel() triggers DIO interrupt (CAD done) which sets STATE_INT_READY

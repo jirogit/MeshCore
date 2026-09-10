@@ -65,13 +65,6 @@ public:
 
   static constexpr uint8_t JP_LBT_JITTER_DIVISOR = 32;
 
-  bool isAS923_1_JP() const override {
-    float freq = getFreqMHz();
-    return (fabsf(freq - 921.000f) < 0.05f ||
-            fabsf(freq - 921.200f) < 0.05f ||
-            fabsf(freq - 921.400f) < 0.05f);
-  }
-
   PacketMillis calcMaxPacketMillis(uint8_t sf, float bw, uint8_t cr, uint8_t preambleSymbols);
   virtual int16_t performChannelScan();
 
