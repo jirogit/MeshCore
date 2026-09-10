@@ -289,8 +289,8 @@ const char *MyMesh::getLogDateTime() {
 }
 
 uint32_t MyMesh::getRetransmitDelay(const mesh::Packet *packet) {
-  if (_radio->isAS923_1_JP()) {
-    // JP LBT: suppress txdelay to jitter-scale to avoid adding unnecessary
+  if (getRssiLbtEnabled()) {
+    // rssi.lbt: suppress txdelay to jitter-scale to avoid adding unnecessary
     // latency on top of LBT backoff. A window equal to jitter_max gives
     // ~33% collision reduction vs zero, scales naturally with airtime as
     // CR changes, and keeps average added delay to ~56ms at SF12/BW125.
@@ -301,7 +301,7 @@ uint32_t MyMesh::getRetransmitDelay(const mesh::Packet *packet) {
   return getRNG()->nextInt(0, 5*t + 1);
 }
 uint32_t MyMesh::getDirectRetransmitDelay(const mesh::Packet *packet) {
-  if (_radio->isAS923_1_JP()) {
+  if (getRssiLbtEnabled()) {
     uint32_t jitter_max = _radio->getEstAirtimeFor(MAX_TRANS_UNIT) / RadioLibWrapper::JP_LBT_JITTER_DIVISOR;
     return getRNG()->nextInt(0, jitter_max + 1);
   }
