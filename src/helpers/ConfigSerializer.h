@@ -17,6 +17,7 @@
 class ConfigSerializer {
   bool _first;
   int8_t _depth;
+  bool _dirty = false;
 
   enum OP { READ, WRITE };
 
@@ -62,7 +63,12 @@ protected:
 
   virtual void structure() = 0;
 
+  void markDirty() { _dirty = true; }
+
 public:
   bool loadSerial(Stream& s);
   bool saveSerial(Stream& s);
+
+  virtual bool isDirty() const { return _dirty; }
+  virtual void clearDirty() { _dirty = false; }
 };
