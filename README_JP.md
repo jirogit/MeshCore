@@ -3,7 +3,7 @@
 > **jirogit/MeshCore** の日本向けビルドです。  
 > ARIB STD-T108（920MHz帯）準拠の **LBT（Listen Before Talk）実装** を含みます。
 
-本家 [meshcore-dev/MeshCore](https://github.com/meshcore-dev/MeshCore) へのPR #2218 がマージされるまでの、日本ユーザー向け暫定ビルドです。
+本家 [meshcore-dev/MeshCore](https://github.com/meshcore-dev/MeshCore) へのPR #3383 がマージされるまでの、日本ユーザー向け暫定ビルドです。
 
 ---
 
