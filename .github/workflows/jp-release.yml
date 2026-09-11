@@ -123,7 +123,6 @@ jobs:
           bash build.sh build-firmware LilyGo_TDeck_kiss_modem
           bash build.sh build-firmware Xiao_S3_WIO_companion_radio_wifi
           bash build.sh build-firmware M5Stack_Unit_C6L_companion_radio_wifi
-          bash build.sh build-firmware LilyGo_TDeck_room_server
 
       - name: Copy artifacts to out/
         run: |
