@@ -66,7 +66,8 @@ jobs:
             variants/lilygo_techo_lite/platformio.ini \
             variants/heltec_t114/platformio.ini \
             variants/m5stack_unit_c6l/platformio.ini \
-            variants/lilygo_tdeck/platformio.ini
+            variants/lilygo_tdeck/platformio.ini \
+            variants/heltec_t1/platformio.ini
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
           bash build.sh build-firmware RAK_WisMesh_Tag_repeater
@@ -105,6 +106,24 @@ jobs:
           bash build.sh build-firmware LilyGo_TDeck_companion_radio_ble
           bash build.sh build-firmware LilyGo_TDeck_companion_radio_usb
           bash build.sh build-firmware LilyGo_TDeck_repeater
+          bash build.sh build-firmware LilyGo_T-Echo-Lite_non_shell_companion_radio_usb
+          bash build.sh build-firmware Heltec_t1_repeater
+          bash build.sh build-firmware Heltec_t1_room_server
+          bash build.sh build-firmware Heltec_t1_companion_radio_ble
+          bash build.sh build-firmware Heltec_t1_companion_radio_usb
+          bash build.sh build-firmware Heltec_t1_kiss_modem
+          bash build.sh build-firmware RAK_WisMesh_Tag_kiss_modem
+          bash build.sh build-firmware t1000e_kiss_modem
+          bash build.sh build-firmware LilyGo_T-Echo-Lite_kiss_modem
+          bash build.sh build-firmware Xiao_nrf52_kiss_modem
+          bash build.sh build-firmware Xiao_S3_WIO_kiss_modem
+          bash build.sh build-firmware Heltec_t114_kiss_modem
+          bash build.sh build-firmware WioTrackerL1_kiss_modem
+          bash build.sh build-firmware M5Stack_Unit_C6L_kiss_modem
+          bash build.sh build-firmware LilyGo_TDeck_kiss_modem
+          bash build.sh build-firmware Xiao_S3_WIO_companion_radio_wifi
+          bash build.sh build-firmware M5Stack_Unit_C6L_companion_radio_wifi
+          bash build.sh build-firmware LilyGo_TDeck_room_server
 
       - name: Copy artifacts to out/
         run: |
