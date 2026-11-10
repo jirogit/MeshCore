@@ -67,7 +67,8 @@ jobs:
             variants/heltec_t114/platformio.ini \
             variants/m5stack_unit_c6l/platformio.ini \
             variants/lilygo_tdeck/platformio.ini \
-            variants/heltec_t1/platformio.ini
+            variants/heltec_t1/platformio.ini \
+            variants/meshtracker_x1/platformio.ini
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_ble
           bash build.sh build-firmware RAK_WisMesh_Tag_companion_radio_usb
           bash build.sh build-firmware RAK_WisMesh_Tag_repeater
@@ -123,6 +124,11 @@ jobs:
           bash build.sh build-firmware LilyGo_TDeck_kiss_modem
           bash build.sh build-firmware Xiao_S3_WIO_companion_radio_wifi
           bash build.sh build-firmware M5Stack_Unit_C6L_companion_radio_wifi
+          bash build.sh build-firmware MeshTracker_X1_companion_radio_ble
+          bash build.sh build-firmware MeshTracker_X1_companion_radio_usb
+          bash build.sh build-firmware MeshTracker_X1_repeater
+          bash build.sh build-firmware MeshTracker_X1_room_server
+          bash build.sh build-firmware MeshTracker_X1_kiss_modem
 
       - name: Copy artifacts to out/
         run: |
@@ -130,17 +136,16 @@ jobs:
           mkdir -p out_jp
           HASH=$(git rev-parse --short HEAD)
           TAG=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
-          for ENV in RAK_WisMesh_Tag_companion_radio_ble RAK_WisMesh_Tag_companion_radio_usb RAK_WisMesh_Tag_repeater RAK_WisMesh_Tag_room_server t1000e_companion_radio_ble t1000e_companion_radio_usb t1000e_repeater t1000e_room_server LilyGo_T-Echo-Lite_companion_radio_ble LilyGo_T-Echo-Lite_repeater LilyGo_T-Echo-Lite_room_server Xiao_nrf52_companion_radio_ble Xiao_nrf52_companion_radio_usb Xiao_nrf52_repeater Xiao_nrf52_room_server Heltec_t114_without_display_companion_radio_ble Heltec_t114_without_display_companion_radio_usb Heltec_t114_without_display_repeater Heltec_t114_without_display_room_server Heltec_t114_companion_radio_ble Heltec_t114_companion_radio_usb Heltec_t114_repeater Heltec_t114_room_server WioTrackerL1_companion_radio_ble WioTrackerL1_companion_radio_usb WioTrackerL1_repeater WioTrackerL1_room_server; do
-
+          # ビルドされた env をすべて拾う（機種の追加時にここを直す必要はない）
+          for DIR in .pio/build/*/; do
+            ENV=$(basename "$DIR")
             NAME="${ENV}-${TAG}-${HASH}"
-            cp ".pio/build/${ENV}/firmware.uf2" "out_jp/${NAME}.uf2" 2>/dev/null || true
-            cp ".pio/build/${ENV}/firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
-          done
-           # ESP32系は.binと-merged.binをコピー
-          for ENV in Xiao_S3_WIO_companion_radio_ble Xiao_S3_WIO_companion_radio_usb Xiao_S3_WIO_repeater Xiao_S3_WIO_room_server M5Stack_Unit_C6L_companion_radio_ble M5Stack_Unit_C6L_companion_radio_usb M5Stack_Unit_C6L_repeater M5Stack_Unit_C6L_room_server LilyGo_TDeck_companion_radio_ble LilyGo_TDeck_companion_radio_usb LilyGo_TDeck_repeater; do
-            NAME="${ENV}-${TAG}-${HASH}"
-            cp ".pio/build/${ENV}/firmware.bin" "out_jp/${NAME}.bin" 2>/dev/null || true
-            cp ".pio/build/${ENV}/firmware-merged.bin" "out_jp/${NAME}-merged.bin" 2>/dev/null || true
+            cp "${DIR}firmware.uf2" "out_jp/${NAME}.uf2" 2>/dev/null || true
+            cp "${DIR}firmware.zip" "out_jp/${NAME}_dfu.zip" 2>/dev/null || true
+            if [ -f "${DIR}firmware-merged.bin" ]; then
+              cp "${DIR}firmware.bin" "out_jp/${NAME}.bin" 2>/dev/null || true
+              cp "${DIR}firmware-merged.bin" "out_jp/${NAME}-merged.bin"
+            fi
           done
           ls -la out_jp/
 
