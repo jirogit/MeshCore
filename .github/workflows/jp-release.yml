@@ -128,6 +128,7 @@ jobs:
           bash build.sh build-firmware MeshTracker_X1_companion_radio_usb
           bash build.sh build-firmware MeshTracker_X1_repeater
           bash build.sh build-firmware MeshTracker_X1_room_server
+          bash build.sh build-firmware MeshTracker_X1_kiss_modem
 
       - name: Copy artifacts to out/
         run: |
